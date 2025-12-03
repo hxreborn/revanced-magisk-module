@@ -1,6 +1,6 @@
 # ReVanced RVX Edition
 
-**Build Date:** 2025-12-03 15:49 UTC
+**Build Date:** 2025-12-03 16:13 UTC
 
 Pre-built ReVanced apps with [Anddea](https://github.com/anddea/revanced-patches) and [Official](https://github.com/ReVanced/revanced-patches) patches.
 
@@ -28,14 +28,6 @@ Built with [Anddea patches](https://github.com/anddea/revanced-patches) for exte
 
 [View patches](https://github.com/anddea/revanced-patches#-comgoogleandroidappsyoutubemusic)
 
-### Spotify
-
-**Version:** 9.1.2.833
-
-**Features:** Premium unlock, Custom theme
-
-[View patches](https://github.com/anddea/revanced-patches#-comspotifymusic)
-
 ### YouTube
 
 **Version:** 20.05.46
@@ -43,6 +35,14 @@ Built with [Anddea patches](https://github.com/anddea/revanced-patches) for exte
 **Features:** SponsorBlock, Return YouTube Dislike, Theme customization, Custom branding
 
 [View patches](https://github.com/anddea/revanced-patches#-comgoogleandroidyoutube)
+
+### Spotify
+
+**Version:** 9.1.2.833
+
+**Features:** Premium unlock, Custom theme
+
+[View patches](https://github.com/anddea/revanced-patches#-comspotifymusic)
 
 ## ReVanced Apps
 
