@@ -1,50 +1,40 @@
 # ReVanced Magisk Module
-[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/rvc_magisk)
-[![CI](https://github.com/j-hc/revanced-magisk-module/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/j-hc/revanced-magisk-module/actions/workflows/ci.yml)
 
-Extensive ReVanced builder  
+[![CI](https://github.com/hxreborn/revanced-magisk-module/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/hxreborn/revanced-magisk-module/actions/workflows/ci.yml)
+[![Releases](https://img.shields.io/github/release-date/hxreborn/revanced-magisk-module?label=Latest%20Build)](https://github.com/hxreborn/revanced-magisk-module/releases/latest)
+[![License](https://img.shields.io/github/license/hxreborn/revanced-magisk-module)](LICENSE)
 
-Get the [latest CI release](https://github.com/j-hc/revanced-magisk-module/releases).
+Automated builds using **[Anddea's RVX patches](https://github.com/anddea/revanced-patches)**.
+Supports `arm64-v8a` architecture and include both Non-Root (APK) and Root (Magisk Module) variants.
 
-Use [**zygisk-detach**](https://github.com/j-hc/zygisk-detach) to detach YouTube and YT Music from Play Store if you are using magisk modules. 
+## Supported Apps
 
-<details><summary><big>Features</big></summary>
-<ul>
- <li>Support all present and future ReVanced and <a href="https://github.com/inotia00/revanced-patches">ReVanced Extended</a> apps</li>
- <li> Can build Magisk modules and non-root APKs</li>
- <li> Updated daily with the latest versions of apps and patches</li>
- <li> Optimize APKs and modules for size</li>
- <li> Modules</li>
-    <ul>
-     <li> recompile invalidated odex for faster usage</li>
-     <li> receive updates from Magisk app</li>
-     <li> do not break safetynet or trigger root detections</li>
-     <li> handle installation of the correct version of the stock app and all that</li>
-     <li> support Magisk and KernelSU</li>
-    </ul>
-</ul>
-Note that the <a href="../../actions/workflows/ci.yml">CI workflow</a> is scheduled to build the modules and APKs everyday using GitHub Actions if there is a change in ReVanced patches. You may want to disable it.
-</details>
+| App Icon | Application | Package Name | Patch Source |
+| :---: | :--- | :--- | :---: |
+| <img src="https://www.gstatic.com/youtube/img/branding/favicon/favicon_144x144.png" width="36"/> | **YouTube**<br><sub>RVX Extended</sub> | `com.google.android.youtube` | [![Anddea](https://img.shields.io/badge/RVX-Anddea-8a2be2?style=flat-square)](https://github.com/anddea/revanced-patches) |
+| <img src="https://music.youtube.com/img/favicon_144.png" width="36"/> | **YouTube Music**<br><sub>RVX Extended</sub> | `com.google.android.apps.youtube.music` | [![Anddea](https://img.shields.io/badge/RVX-Anddea-8a2be2?style=flat-square)](https://github.com/anddea/revanced-patches) |
 
-## To include/exclude patches or patch other apps
+> **Documentation:** [View unique features and patch details](https://github.com/anddea/revanced-patches/wiki/Unique-features)
 
- * Star the repo :eyes:
- * Use the repo as a [template](https://github.com/new?template_name=revanced-magisk-module&template_owner=j-hc)
- * Customize [`config.toml`](./config.toml) using [rvmm-config-gen](https://j-hc.github.io/rvmm-config-gen/)
- * Run the build [workflow](../../actions/workflows/build.yml)
- * Grab your modules and APKs from [releases](../../releases)
+> [!NOTE]
+> * **Non-Root:** You must install **[GmsCore (MicroG)](https://github.com/ReVanced/GmsCore/releases)** to use these APKs.
+> * **Root:** Use **[zygisk-detach](https://github.com/j-hc/zygisk-detach)** to detach YouTube/Music from the Play Store.
 
-also see here [`CONFIG.md`](./CONFIG.md)
+## Downloads
 
-## Building Locally
-### On Termux
-```console
-bash <(curl -sSf https://raw.githubusercontent.com/j-hc/revanced-magisk-module/main/build-termux.sh)
-```
+[**Get the Latest Release**](https://github.com/hxreborn/revanced-magisk-module/releases/latest)
 
-### On Desktop
-```console
-$ git clone https://github.com/j-hc/revanced-magisk-module
-$ cd revanced-magisk-module
-$ ./build.sh
-```
+
+## Credits
+
+- **[ReVanced](https://github.com/ReVanced)**: Original patches and ecosystem
+- **[anddea/revanced-patches](https://github.com/anddea/revanced-patches)**: RVX Extended patches
+- **[inotia00/revanced-cli](https://github.com/inotia00/revanced-cli)**: CLI tool
+- **[j-hc/revanced-magisk-module](https://github.com/j-hc/revanced-magisk-module)**: Build template
+- **[j-hc/zygisk-detach](https://github.com/j-hc/zygisk-detach)**: Play Store detach module
+
+---
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
