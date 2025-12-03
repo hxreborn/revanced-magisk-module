@@ -1,0 +1,57 @@
+# ReVanced build with Anddea patches (dev branch)
+# Builds: YouTube, YouTube Music (arm64-v8a, APK + Magisk)
+
+enable-magisk-update = true
+patches-source = "anddea/revanced-patches"
+cli-source = "inotia00/revanced-cli"
+patches-version = "dev"
+cli-version = "latest"
+rv-brand = "ReVanced"
+remove-rv-integrations-checks = false
+
+[YouTube]
+app-name = "YouTube"
+enabled = true
+build-mode = "both"
+version = "auto"
+arch = "arm64-v8a"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube"
+module-prop-name = "youtube"
+
+excluded-patches = """\
+  "Custom header for YouTube" \
+  "Hide shortcuts" \
+  """
+
+included-patches = """\
+  "Theme" \
+  "MaterialYou" \
+  """
+
+patcher-args = """\
+  -OdarkThemeBackgroundColor=@android:color/black \
+  -OlightThemeBackgroundColor=@android:color/white \
+  -OoverlayButtonsIconStyle=Bold \
+  """
+
+[YouTubeMusic]
+app-name = "YouTube Music"
+enabled = true
+build-mode = "both"
+version = "auto"
+arch = "arm64-v8a"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/google-inc/youtube-music"
+module-prop-name = "youtube-music"
+
+excluded-patches = """\
+  """
+
+included-patches = """\
+  "Theme" \
+  "MaterialYou" \
+  """
+
+patcher-args = """\
+  -OdarkThemeBackgroundColor=@android:color/black \
+  -OlightThemeBackgroundColor=@android:color/white \
+  """

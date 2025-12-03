@@ -1,0 +1,3 @@
+*.toml linguist-detectable
+*.txt linguist-detectable
+*.yml linguist-detectable
