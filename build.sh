@@ -32,6 +32,7 @@ DEF_CLI_VER=$(toml_get "$main_config_t" cli-version) || DEF_CLI_VER="latest"
 DEF_PATCHES_SRC=$(toml_get "$main_config_t" patches-source) || DEF_PATCHES_SRC="ReVanced/revanced-patches"
 DEF_CLI_SRC=$(toml_get "$main_config_t" cli-source) || DEF_CLI_SRC="j-hc/revanced-cli"
 DEF_RV_BRAND=$(toml_get "$main_config_t" rv-brand) || DEF_RV_BRAND="ReVanced"
+DEF_UPDATE_BRANCH=$(toml_get "$main_config_t" update-branch) || DEF_UPDATE_BRANCH="update"
 mkdir -p "$TEMP_DIR" "$BUILD_DIR"
 
 if [ "${2-}" = "--config-update" ]; then
@@ -162,13 +163,75 @@ for table_name in $(toml_get_table_names); do
 	fi
 done
 wait
-rm -rf temp/tmp.*
+rm -rf "$TEMP_DIR"/tmp.*
 if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
 
-log "\nInstall [Microg](https://github.com/ReVanced/GmsCore/releases) for non-root YouTube and YT Music APKs"
-log "Use [zygisk-detach](https://github.com/j-hc/zygisk-detach) to detach root ReVanced YouTube and YT Music from Play Store"
-log "\n[revanced-magisk-module](https://github.com/j-hc/revanced-magisk-module)\n"
-log "$(cat "$TEMP_DIR"/*-rv/changelog.md)"
+# Save build logs before overwriting
+if [ -f build.md ]; then
+	if ! cp build.md build.md.tmp; then
+		epr "Could not backup build.md, version extraction will be skipped"
+	fi
+fi
+
+# Extract patches version and generate enhanced changelog
+PATCHES_FILE=$(ls "$TEMP_DIR"/*-rv/patches-*.rvp 2>/dev/null | head -1)
+if [ -z "$PATCHES_FILE" ]; then
+	epr "Patches file not found, skipping changelog generation"
+else
+	PATCHES_VERSION=$(basename "$PATCHES_FILE" | sed 's/patches-//;s/.rvp//')
+
+	# Extract CLI version
+	CLI_FILE=$(ls "$TEMP_DIR"/*-rv/revanced-cli-*.jar 2>/dev/null | head -1)
+	CLI_VERSION=${CLI_FILE:+$(basename "$CLI_FILE" | sed 's/revanced-cli-//;s/.jar//')}
+	CLI_VERSION=${CLI_VERSION:-latest}
+
+	# Fetch patch release date
+	PATCH_DATE=$(curl -fsSL "https://api.github.com/repos/anddea/revanced-patches/releases/tags/v${PATCHES_VERSION}" 2>/dev/null | jq -r '.published_at // empty' | cut -d'T' -f1)
+	PATCH_DATE=${PATCH_DATE:-unknown}
+
+	# Fetch CLI release date
+	CLI_VERSION_TAG=${CLI_VERSION%-all}
+	CLI_DATE=$(curl -fsSL "https://api.github.com/repos/inotia00/revanced-cli/releases/tags/v${CLI_VERSION_TAG}" 2>/dev/null | jq -r '.published_at // empty' | cut -d'T' -f1)
+	CLI_DATE=${CLI_DATE:-unknown}
+
+	# Derive short brand name
+	if [ "$DEF_RV_BRAND" = "ReVanced Extended" ]; then
+		DEF_RV_BRAND_F="RVX"
+	else
+		DEF_RV_BRAND_F=${DEF_RV_BRAND^^}
+	fi
+
+	# Generate build.md with header
+	{
+		echo "# 🚀 New ${DEF_RV_BRAND_F} Build ($(date -u '+%Y-%m-%d'))"
+		echo ""
+
+		# Extract app versions from saved build logs
+		if [ -f build.md.tmp ]; then
+			YOUTUBE_VER=$(grep "^YouTube:" build.md.tmp 2>/dev/null | head -1 | cut -d: -f2- | xargs)
+			YTMUSIC_VER=$(grep "^YouTubeMusic:" build.md.tmp 2>/dev/null | head -1 | cut -d: -f2- | xargs)
+
+			[ -n "$YOUTUBE_VER" ] && echo "**YouTube:** ${YOUTUBE_VER}  "
+			[ -n "$YTMUSIC_VER" ] && echo "**YouTube Music:** ${YTMUSIC_VER}  "
+		fi
+
+		echo ""
+
+		# Add metadata for config_update detection
+		echo "Patches: ${DEF_PATCHES_SRC}/patches-${PATCHES_VERSION}.rvp  "
+		echo "CLI: ${DEF_CLI_SRC}/revanced-cli-${CLI_VERSION}.jar  "
+		echo ""
+	} > build.md
+
+	rm -f build.md.tmp
+
+	# Generate Anddea changelog
+	if [ -x ./generate_changelog.sh ]; then
+		./generate_changelog.sh "$PATCHES_VERSION" build.md || epr "Changelog generation failed"
+	elif [ -f ./generate_changelog.sh ]; then
+		epr "generate_changelog.sh exists but is not executable"
+	fi
+fi
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
 if [ -n "$SKIPPED" ]; then
