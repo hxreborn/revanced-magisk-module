@@ -22,14 +22,17 @@ toml_get_table_names() { jq -r -e 'to_entries[] | select(.value | type == "objec
 toml_get_table_main() { jq -r -e 'to_entries | map(select(.value | type != "object")) | from_entries' <<<"$__TOML__"; }
 toml_get_table() { jq -r -e ".\"${1}\"" <<<"$__TOML__"; }
 toml_get() {
-  local op
-  op=$(jq -r ".\"${2}\" | values" <<<"$1")
-  if [ "$op" ]; then
-    op="${op#"${op%%[![:space:]]*}"}"
-    op="${op%"${op##*[![:space:]]}"}"
-    op=${op//"'"/'"'}
-    echo "$op"
-  else return 1; fi
+	local op quote_placeholder=$'\001'
+	op=$(jq -r ".\"${2}\" | values" <<<"$1")
+	if [ "$op" ]; then
+		op="${op#"${op%%[![:space:]]*}"}"
+		op="${op%"${op##*[![:space:]]}"}"
+		op=${op//\\\'/$quote_placeholder}
+		op=${op//"''"/$quote_placeholder}
+		op=${op//"'"/'"'}
+		op=${op//$quote_placeholder/$'\''}
+		echo "$op"
+	else return 1; fi
 }
 
 pr() { echo -e "\033[0;32m[+] ${1}\033[0m"; }
@@ -351,29 +354,32 @@ apk_mirror_search() {
   return 1
 }
 dl_apkmirror() {
-  local url=$1 version=${2// /-} output=$3 arch=$4 dpi=$5 is_bundle=false
-  if [ -f "${output}.apkm" ]; then
-    is_bundle=true
-  else
-    if [ "$arch" = "arm-v7a" ]; then arch="armeabi-v7a"; fi
-    local resp node app_table apkmname dlurl=""
-    apkmname=$($HTMLQ "h1.marginZero" --text <<<"$__APKMIRROR_RESP__")
-    apkmname="${apkmname,,}" apkmname="${apkmname// /-}" apkmname="${apkmname//[^a-z0-9-]/}"
-    url="${url}/${apkmname}-${version//./-}-release/"
-    resp=$(req "$url" -) || return 1
-    node=$($HTMLQ "div.table-row.headerFont:nth-last-child(1)" -r "span:nth-child(n+3)" <<<"$resp")
-    if [ "$node" ]; then
-      if ! dlurl=$(apk_mirror_search "$resp" "$dpi" "${arch}" "APK"); then
-        if ! dlurl=$(apk_mirror_search "$resp" "$dpi" "${arch}" "BUNDLE"); then
-          return 1
-        else is_bundle=true; fi
-      fi
-      [ -z "$dlurl" ] && return 1
-      resp=$(req "$dlurl" -)
-    fi
-    url=$(echo "$resp" | $HTMLQ --base https://www.apkmirror.com --attribute href "a.btn") || return 1
-    url=$(req "$url" - | $HTMLQ --base https://www.apkmirror.com --attribute href "span > a[rel = nofollow]") || return 1
-  fi
+	local url=$1 version=${2// /-} output=$3 arch=$4 dpi=$5 is_bundle=false
+	if [ -f "${output}.apkm" ]; then
+		is_bundle=true
+	else
+		if [ "$arch" = "arm-v7a" ]; then arch="armeabi-v7a"; fi
+		local resp node app_table apkmname dlurl=""
+		apkmname=$($HTMLQ "h1.marginZero" --text <<<"$__APKMIRROR_RESP__")
+		apkmname="${apkmname,,}" apkmname="${apkmname// /-}" apkmname="${apkmname//[^a-z0-9-]/}"
+		url="${url}/${apkmname}-${version//./-}-release/"
+		resp=$(req "$url" -) || return 1
+		node=$($HTMLQ "div.table-row.headerFont:nth-last-child(1)" -r "span:nth-child(n+3)" <<<"$resp")
+		if [ "$node" ]; then
+			for current_dpi in $dpi; do
+				for type in APK BUNDLE; do
+					if dlurl=$(apk_mirror_search "$resp" "$current_dpi" "${arch}" "$type"); then
+						[[ "$type" == "BUNDLE" ]] && is_bundle=true || is_bundle=false
+						break 2
+					fi
+				done
+			done
+			[ -z "$dlurl" ] && return 1
+			resp=$(req "$dlurl" -)
+		fi
+		url=$(echo "$resp" | $HTMLQ --base https://www.apkmirror.com --attribute href "a.btn") || return 1
+		url=$(req "$url" - | $HTMLQ --base https://www.apkmirror.com --attribute href "span > a[rel = nofollow]") || return 1
+	fi
 
   if [ "$is_bundle" = true ]; then
     req "$url" "${output}.apkm" || return 1
@@ -400,8 +406,8 @@ get_apkmirror_vers() {
 }
 get_apkmirror_pkg_name() { sed -n 's;.*id=\(.*\)" class="accent_color.*;\1;p' <<<"$__APKMIRROR_RESP__"; }
 get_apkmirror_resp() {
-  __APKMIRROR_RESP__=$(req "${1}" -)
-  __APKMIRROR_CAT__="${1##*/}"
+	__APKMIRROR_RESP__=$(req "${1}" -) || return 1
+	__APKMIRROR_CAT__="${1##*/}"
 }
 
 # -------------------- uptodown --------------------
