@@ -1,6 +1,6 @@
 {
   "version": "v20.05.46 (anddea patches-3.15.0-dev.9)",
-  "versionCode": 11,
-  "zipUrl": "https://github.com/hxreborn/revanced-magisk-module/releases/download/11/youtube-rvx-magisk-v20.05.46-arm64-v8a.zip",
+  "versionCode": 12,
+  "zipUrl": "https://github.com/hxreborn/revanced-magisk-module/releases/download/12/youtube-rvx-magisk-v20.05.46-arm64-v8a.zip",
   "changelog": "https://raw.githubusercontent.com/hxreborn/revanced-magisk-module/update/build.md"
 }
