@@ -4,7 +4,7 @@ patches-version = "latest"
 cli-version = "latest"
 rv-brand = "ReVanced"
 remove-rv-integrations-checks = false
-enable-magisk-update = true
+enable-module-update = true
 
 [YouTube]
 app-name = "YouTube"
