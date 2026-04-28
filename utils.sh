@@ -45,10 +45,130 @@ abort() {
   exit 1
 }
 
+build_patches_from_gitlab() {
+  local gl_path=$1 ver=$2 cl_dir=$3
+  local gl_api="https://gitlab.com/api/v4/projects/${gl_path//\//%2F}"
+  local cache_dir="${TEMP_DIR}/gitlab-rv"
+  mkdir -p "$cache_dir"
+
+  if [ "$ver" = "dev" ] || [ "$ver" = "latest" ]; then
+    local resp
+    resp=$(curl -fsSL "${gl_api}/releases?per_page=20") || { epr "GitLab releases request failed"; return 1; }
+    if [ "$ver" = "dev" ]; then
+      ver=$(jq -r '.[0].tag_name' <<<"$resp")
+    else
+      ver=$(jq -r '.[] | .tag_name | select(test("-dev|-alpha|-beta|-rc") | not)' <<<"$resp" | head -1)
+    fi
+  fi
+  [ -z "$ver" ] && { epr "Could not resolve GitLab version"; return 1; }
+
+  local ver_plain="${ver#v}"
+  local cache_file="${cache_dir}/patches-${ver_plain}.rvp"
+
+  if [ -f "$cache_file" ]; then
+    pr "Using cached GitLab patches ${ver}" >&2
+    echo "Patches: ${gl_path##*/}-${ver_plain}.rvp  " >>"${cl_dir}/changelog.md"
+    echo "$cache_file"
+    return 0
+  fi
+
+  # GitHub token needed for GitHub Packages (patcher dep + plugin repo credential validation)
+  local gh_token="${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}"
+
+  pr "Building patches from gitlab:${gl_path} ${ver}" >&2
+  local src_url="https://gitlab.com/${gl_path}/-/archive/${ver}/${gl_path##*/}-${ver}.zip"
+  local src_zip="${cache_dir}/src-${ver}.zip"
+  curl -fsSL --progress-bar "$src_url" -o "$src_zip" >&2 || { epr "Source download failed"; return 1; }
+
+  local build_dir="${cache_dir}/build-${ver}"
+  rm -rf "$build_dir"
+  mkdir -p "$build_dir"
+  unzip -q "$src_zip" -d "$build_dir" >&2 || return 1
+  local src_dir
+  src_dir="${build_dir}/$(ls "$build_dir" | head -1)"
+
+  # Extract the required plugin version from settings.gradle.kts
+  local plugin_ver
+  plugin_ver=$(sed -n 's/.*id("app.revanced.patches") version "\([^"]*\)".*/\1/p' "${src_dir}/settings.gradle.kts")
+
+  # Build the Gradle plugin and install to local Maven if not already cached
+  local plugin_jar="${HOME}/.m2/repository/app/revanced/revanced-patches-gradle-plugin/${plugin_ver}/revanced-patches-gradle-plugin-${plugin_ver}.jar"
+  if [ ! -f "$plugin_jar" ]; then
+    local plugin_dir="${cache_dir}/plugin-${plugin_ver}"
+    if [ ! -d "$plugin_dir" ]; then
+      pr "Cloning revanced-patches-gradle-plugin v${plugin_ver}" >&2
+      git clone --quiet --depth 1 --branch "v${plugin_ver}" \
+        "https://github.com/ReVanced/revanced-patches-gradle-plugin.git" \
+        "$plugin_dir" >&2 || return 1
+    fi
+    pr "Installing plugin to local Maven" >&2
+    # Init script disables GPG signing so publishToMavenLocal works without a key
+    local nosign_init="${CWD}/${TEMP_DIR}/nosign.gradle"
+    cat >"$nosign_init" <<'GRADLE'
+allprojects {
+    afterEvaluate {
+        tasks.withType(org.gradle.plugins.signing.Sign) {
+            onlyIf { false }
+        }
+    }
+}
+GRADLE
+    # On macOS, Homebrew JDK lacks the .jdk/Contents/Home suffix Gradle needs for class roots
+    local brew_jdk17="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+    if [ -d "$brew_jdk17" ]; then
+      echo "org.gradle.java.installations.paths=${brew_jdk17}" >>"$plugin_dir/gradle.properties"
+    fi
+    (
+      cd "$plugin_dir" || return 1
+      chmod +x gradlew
+      ./gradlew publishToMavenLocal \
+        --init-script "$nosign_init" \
+        --no-daemon --quiet
+    ) >&2 || {
+      # Remove partial install so next run retries
+      rm -rf "${HOME}/.m2/repository/app/revanced/revanced-patches-gradle-plugin/${plugin_ver}"
+      rm -rf "${HOME}/.m2/repository/app/revanced/patches/app.revanced.patches.gradle.plugin/${plugin_ver}"
+      epr "Plugin build/install failed"
+      return 1
+    }
+  fi
+
+  # Patch settings.gradle.kts: prepend mavenLocal() so the locally built plugin is found first
+  python3 - "$src_dir/settings.gradle.kts" <<'PYEOF' >&2
+import sys
+f = sys.argv[1]
+c = open(f).read()
+c = c.replace('gradlePluginPortal()', 'mavenLocal()\n        gradlePluginPortal()', 1)
+open(f, 'w').write(c)
+PYEOF
+
+  pr "Running Gradle build (this may take a while)..." >&2
+  local gh_user
+  gh_user=$(gh api user -q '.login' 2>/dev/null || echo "x")
+  local -a gradle_opts=("-PgithubPackagesUsername=${gh_user}" "-PgithubPackagesPassword=${gh_token:-x}")
+  (
+    cd "$src_dir" || return 1
+    chmod +x gradlew
+    ./gradlew "${gradle_opts[@]}" :patches:buildAndroid \
+      --no-daemon --quiet
+  ) >&2 || { epr "Gradle build failed"; return 1; }
+
+  local rvp
+  rvp=$(find "${src_dir}/patches/build/libs" -name "patches-*.rvp" \
+    ! -name "*-sources*" ! -name "*-javadoc*" 2>/dev/null | head -1)
+  [ -z "$rvp" ] && { epr "Built .rvp not found in patches/build/libs"; return 1; }
+
+  cp "$rvp" "$cache_file"
+  echo "Patches: ${gl_path##*/}-${ver_plain}.rvp  " >>"${cl_dir}/changelog.md"
+  echo -e "[Changelog](https://gitlab.com/${gl_path}/-/releases/${ver})\n" >>"${cl_dir}/changelog.md"
+  echo "$cache_file"
+}
+
 get_rv_prebuilts() {
   local cli_src=$1 cli_ver=$2 patches_src=$3 patches_ver=$4
-  pr "Getting prebuilts (${patches_src%/*})" >&2
-  local cl_dir=${patches_src%/*}
+  local _norm="${patches_src#gitlab:}"
+  pr "Getting prebuilts (${_norm%/*})" >&2
+  local cl_dir=${_norm%/*}
   cl_dir=${TEMP_DIR}/${cl_dir,,}-rv
   [ -d "$cl_dir" ] || mkdir "$cl_dir"
   for src_ver in "$cli_src CLI $cli_ver revanced-cli" "$patches_src Patches $patches_ver patches"; do
@@ -62,6 +182,14 @@ get_rv_prebuilts() {
       ext="rvp"
       local grab_cl=true
     else abort unreachable; fi
+
+    if [ "$tag" = "Patches" ] && [[ "$src" == gitlab:* ]]; then
+      local glab_file
+      glab_file=$(build_patches_from_gitlab "${src#gitlab:}" "$ver" "$cl_dir") || return 1
+      echo -n "$glab_file "
+      continue
+    fi
+
     local dir=${src%/*}
     dir=${TEMP_DIR}/${dir,,}-rv
     [ -d "$dir" ] || mkdir "$dir"
@@ -148,6 +276,11 @@ config_update() {
     if [ "$enabled" = false ]; then continue; fi
     PATCHES_SRC=$(toml_get "$t" patches-source) || PATCHES_SRC=$DEF_PATCHES_SRC
     PATCHES_VER=$(toml_get "$t" patches-version) || PATCHES_VER=$DEF_PATCHES_VER
+    if [[ "$PATCHES_SRC" == gitlab:* ]]; then
+      upped+=("$table_name")
+      prcfg=true
+      continue
+    fi
     if [[ -v sources["$PATCHES_SRC/$PATCHES_VER"] ]]; then
       if [ "${sources["$PATCHES_SRC/$PATCHES_VER"]}" = 1 ]; then upped+=("$table_name"); fi
     else
@@ -280,7 +413,7 @@ get_patch_last_supported_ver() {
     local ver vers="" NL=$'\n'
     while IFS= read -r line; do
       line="${line:1:${#line}-2}"
-      ver=$(sed -n "/^Name: $line\$/,/^\$/p" <<<"$op" | sed -n "/^Compatible versions:\$/,/^\$/p" | tail -n +2)
+      ver=$(sed -n "/^Name: $line\$/,/^\$/p" <<<"$op" | sed -n "/Compatible versions:/,/^\$/p" | tail -n +2 | awk '{$1=$1}1')
       vers=${ver}${NL}
     done <<<"$(list_args "$inc_sel")"
     vers=$(awk '{$1=$1}1' <<<"$vers")
@@ -289,7 +422,7 @@ get_patch_last_supported_ver() {
       return
     fi
   fi
-  if ! op=$(java -jar "$rv_cli_jar" list-versions "$rv_patches_jar" -f "$pkg_name" 2>&1 | tail -n +3 | awk '{$1=$1}1'); then
+  if ! op=$(java -jar "$rv_cli_jar" list-versions -p "$rv_patches_jar" -b -f "$pkg_name" 2>&1 | tail -n +3 | awk '{$1=$1}1'); then
     epr "list-versions: '$op'"
     return 1
   fi
@@ -483,7 +616,7 @@ get_archive_pkg_name() { echo "$__ARCHIVE_PKG_NAME__"; }
 
 patch_apk() {
   local stock_input=$1 patched_apk=$2 patcher_args=$3 rv_cli_jar=$4 rv_patches_jar=$5
-  local cmd="env -u GITHUB_REPOSITORY java -jar $rv_cli_jar patch $stock_input --purge -o $patched_apk -p $rv_patches_jar --keystore=ks.keystore \
+  local cmd="env -u GITHUB_REPOSITORY java -jar $rv_cli_jar patch $stock_input --purge -o $patched_apk -p $rv_patches_jar -b --keystore=ks.keystore \
 --keystore-entry-password=123456789 --keystore-password=123456789 --signer=jhc --keystore-entry-alias=jhc $patcher_args"
   if [ "$OS" = Android ]; then cmd+=" --custom-aapt2-binary=${AAPT2}"; fi
   pr "$cmd"
@@ -538,7 +671,7 @@ build_rv() {
     return 0
   fi
   local list_patches
-  list_patches=$(java -jar "$rv_cli_jar" list-patches "$rv_patches_jar" -f "$pkg_name" -v -p 2>&1)
+  list_patches=$(java -jar "$rv_cli_jar" list-patches -p "$rv_patches_jar" -b --filter-package-name="$pkg_name" --versions --packages 2>&1)
 
   local get_latest_ver=false
   if [ "$version_mode" = auto ]; then

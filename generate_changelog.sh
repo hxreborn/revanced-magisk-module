@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate Anddea changelog from conventional commits between releases
+# Generate ReVanced changelog from conventional commits between releases
 
 set -euo pipefail
 
@@ -7,7 +7,7 @@ PATCHES_VERSION="${1:-}"
 OUTPUT_FILE="${2:-build.md}"
 
 # Configuration
-REPO="${CHANGELOG_REPO:-anddea/revanced-patches}"
+REPO="${CHANGELOG_REPO:-ReVanced/revanced-patches}"
 GH_API="https://api.github.com"
 RELEASE_LIMIT="${CHANGELOG_RELEASE_LIMIT:-50}"
 
