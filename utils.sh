@@ -72,8 +72,8 @@ build_patches_from_gitlab() {
     return 0
   fi
 
-  # GitHub token needed for GitHub Packages (patcher dep + plugin repo credential validation)
-  local gh_token="${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}"
+  # PACKAGES_TOKEN must have read:packages scope; GITHUB_TOKEN only covers same-org packages
+  local gh_token="${PACKAGES_TOKEN:-${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 
   pr "Building patches from gitlab:${gl_path} ${ver}" >&2
   local src_url="https://gitlab.com/${gl_path}/-/archive/${ver}/${gl_path##*/}-${ver}.zip"
@@ -144,7 +144,7 @@ PYEOF
 
   pr "Running Gradle build (this may take a while)..." >&2
   local gh_user
-  gh_user=$(gh api user -q '.login' 2>/dev/null || echo "x")
+  gh_user="${GITHUB_ACTOR:-$(gh api user -q '.login' 2>/dev/null || echo "x")}"
   local -a gradle_opts=("-PgithubPackagesUsername=${gh_user}" "-PgithubPackagesPassword=${gh_token:-x}")
   (
     cd "$src_dir" || return 1
