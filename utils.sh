@@ -74,7 +74,7 @@ build_patches_from_gitlab() {
 
 	if [ -f "$cache_file" ]; then
 		pr "Using cached GitLab patches ${ver}" >&2
-		echo "Patches: ${gl_path##*/}-${ver_plain}.rvp  " >>"${cl_dir}/changelog.md"
+		echo "Patches: $(cut -d/ -f1 <<<"$gl_path")/${gl_path##*/}-${ver_plain}.rvp  " >>"${cl_dir}/changelog.md"
 		echo "$cache_file"
 		return 0
 	fi
@@ -161,7 +161,7 @@ PYEOF
 	[ -z "$rvp" ] && { epr "Built .rvp not found in patches/build/libs"; return 1; }
 
 	cp "$rvp" "$cache_file"
-	echo "Patches: ${gl_path##*/}-${ver_plain}.rvp  " >>"${cl_dir}/changelog.md"
+	echo "Patches: $(cut -d/ -f1 <<<"$gl_path")/${gl_path##*/}-${ver_plain}.rvp  " >>"${cl_dir}/changelog.md"
 	echo -e "[Changelog](https://gitlab.com/${gl_path}/-/releases/${ver})\n" >>"${cl_dir}/changelog.md"
 	echo "$cache_file"
 }
