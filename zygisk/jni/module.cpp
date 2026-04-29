@@ -146,8 +146,7 @@ static bool injectMount(const char* src, const char* dst, pid_t pid) {
         return false;
     }
 
-    // MS_SLAVE breaks the shared peer group so the bind stays local to this
-    // app namespace and doesn't propagate back to zygote or other processes.
+    // MS_SLAVE prevents the bind from propagating to zygote's namespace.
     if (mount(NULL, "/", NULL, MS_REC | MS_SLAVE, NULL) != 0) {
         LOGD("WARN make-rslave failed: %s", strerror(errno));
     }
