@@ -164,7 +164,7 @@ mv -f "$MODPATH/base.apk" "$RVPATH"
 # 	ui_print "ERROR: Mount failed!"
 # 	ui_print "$op"
 # fi
-ui_print "* Reboot required to activate Zygisk hook"
+ui_print "* Reboot required to activate Zygisk mount"
 am force-stop "$PKG_NAME"
 ui_print "* Optimizing $PKG_NAME"
 

@@ -9,15 +9,9 @@ Automated builds of patched YouTube using official [ReVanced patches](https://gi
 
 [**Latest Release**](https://github.com/hxreborn/revanced-magisk-module/releases/latest)
 
-> [!NOTE]
-> Use [zygisk-detach](https://github.com/j-hc/zygisk-detach) to detach YouTube from the Play Store to prevent auto-updates overwriting the patched version.
-
 ## Credits
 
-- [ReVanced](https://gitlab.com/ReVanced): Patches and CLI
+- [ReVanced](https://github.com/ReVanced): Patches and CLI
 - [j-hc/revanced-magisk-module](https://github.com/j-hc/revanced-magisk-module): Build pipeline template
 - [j-hc/rvmm-zygisk-mount](https://github.com/j-hc/rvmm-zygisk-mount): Zygisk companion mount implementation
 
-## License
-
-GPL-3.0 — see [LICENSE](LICENSE).
