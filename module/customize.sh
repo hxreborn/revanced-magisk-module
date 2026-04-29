@@ -37,8 +37,14 @@ pmex() {
 	return $RET
 }
 
-if pmex path "$PKG_NAME" >&2; then
-	pmex uninstall-system-updates "$PKG_NAME" >/dev/null 2>&1
+if _BP=$(pmex path "$PKG_NAME"); then
+	_BP=${_BP##*:} _BP=${_BP%/*}
+	_IV=$(dumpsys package "$PKG_NAME" 2>&1 | grep -m1 versionName) _IV=${_IV#*=}
+	if [ "${_BP:1:4}" = "data" ] && [ "$_IV" = "$PKG_VER" ]; then
+		ui_print "* User install $PKG_VER already present, reusing"
+	else
+		pmex uninstall-system-updates "$PKG_NAME" >/dev/null 2>&1
+	fi
 else
 	if pmex install-existing "$PKG_NAME" >/dev/null 2>&1; then
 		pmex uninstall-system-updates "$PKG_NAME" >/dev/null 2>&1
@@ -148,15 +154,17 @@ fi
 ui_print "* Setting Permissions"
 set_perm "$MODPATH/base.apk" 1000 1000 644 u:object_r:apk_data_file:s0
 
-ui_print "* Mounting $PKG_NAME"
+ui_print "* Staging patched APK"
 mkdir -p "/data/adb/rvhc"
 RVPATH=/data/adb/rvhc/${MODPATH##*/}.apk
 mv -f "$MODPATH/base.apk" "$RVPATH"
 
-if ! op=$(mm mount -o bind "$RVPATH" "$BASEPATH/base.apk" 2>&1); then
-	ui_print "ERROR: Mount failed!"
-	ui_print "$op"
-fi
+# don't mount to avoid leaks
+# if ! op=$(mm mount -o bind "$RVPATH" "$BASEPATH/base.apk" 2>&1); then
+# 	ui_print "ERROR: Mount failed!"
+# 	ui_print "$op"
+# fi
+ui_print "* Reboot required to activate Zygisk hook"
 am force-stop "$PKG_NAME"
 ui_print "* Optimizing $PKG_NAME"
 
@@ -187,4 +195,5 @@ rm -rf "${MODPATH:?}/bin" "$MODPATH/$PKG_NAME.apk"
 
 ui_print "* Done"
 ui_print "  by hxreborn (github.com/hxreborn)"
+ui_print "  zygisk mount: j-hc (rvmm-zygisk-mount)"
 ui_print " "
