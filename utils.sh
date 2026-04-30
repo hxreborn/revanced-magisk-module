@@ -295,8 +295,31 @@ config_update() {
 		PATCHES_SRC=$(toml_get "$t" patches-source) || PATCHES_SRC=$DEF_PATCHES_SRC
 		PATCHES_VER=$(toml_get "$t" patches-version) || PATCHES_VER=$DEF_PATCHES_VER
 		if [[ "$PATCHES_SRC" == gitlab:* ]]; then
-			upped+=("$table_name")
-			prcfg=true
+			if [[ -v sources["$PATCHES_SRC/$PATCHES_VER"] ]]; then
+				if [ "${sources["$PATCHES_SRC/$PATCHES_VER"]}" = 1 ]; then upped+=("$table_name"); fi
+			else
+				sources["$PATCHES_SRC/$PATCHES_VER"]=0
+				local gl_path="${PATCHES_SRC#gitlab:}"
+				local gl_api="https://gitlab.com/api/v4/projects/${gl_path//\//%2F}"
+				local ver="$PATCHES_VER"
+				if [ "$ver" = "dev" ] || [ "$ver" = "latest" ]; then
+					local resp
+					resp=$(curl -fsSL "${gl_api}/releases?per_page=20") || { sources["$PATCHES_SRC/$PATCHES_VER"]=1; prcfg=true; upped+=("$table_name"); continue; }
+					if [ "$ver" = "dev" ]; then
+						ver=$(jq -r '.[0].tag_name' <<<"$resp")
+					else
+						ver=$(jq -r '.[] | .tag_name | select(test("-dev|-alpha|-beta|-rc") | not)' <<<"$resp" | head -1)
+					fi
+				fi
+				local ver_plain="${ver#v}"
+				if ! OP=$(grep "^Patches: ${gl_path%%/*}/" build.md | grep -m1 "${gl_path##*/}-${ver_plain}.rvp"); then
+					sources["$PATCHES_SRC/$PATCHES_VER"]=1
+					prcfg=true
+					upped+=("$table_name")
+				else
+					echo "$OP" >>"$TEMP_DIR"/skipped
+				fi
+			fi
 			continue
 		fi
 		if [[ -v sources["$PATCHES_SRC/$PATCHES_VER"] ]]; then
