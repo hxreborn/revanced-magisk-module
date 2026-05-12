@@ -1,5 +1,5 @@
-patches-source = "gitlab:ReVanced/revanced-patches"
-cli-source = "ReVanced/revanced-cli"
+patches-source = "MorpheApp/morphe-patches"
+cli-source = "MorpheApp/morphe-cli"
 patches-version = "latest"
 cli-version = "latest"
 rv-brand = "ReVanced Zygisk"
