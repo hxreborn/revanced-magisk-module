@@ -3,7 +3,7 @@ cli-source = "MorpheApp/morphe-cli"
 patches-version = "latest"
 cli-version = "latest"
 rv-brand = "ReVanced Zygisk"
-remove-rv-integrations-checks = false
+remove-rv-integrations-checks = true
 enable-module-update = true
 
 [YouTube]
