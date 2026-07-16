@@ -51,6 +51,11 @@ abort() {
 	kill -n 9 0
 }
 java() { env -i java --enable-native-access=ALL-UNNAMED "$@"; }
+# Record a per-app build failure. build_rv runs backgrounded and returns 0 even when a
+# build fails, so failures would otherwise only surface as scattered stderr lines. build.sh
+# summarizes this file at the end. Single-line appends are atomic under O_APPEND, so
+# parallel jobs writing here do not corrupt each other.
+build_fail() { epr "$2"; echo "$1" >>"${TEMP_DIR}/failed"; }
 
 build_patches_from_gitlab() {
 	local gl_path=$1 ver=$2 cl_dir=$3
@@ -370,6 +375,9 @@ _req() {
 			return
 		fi
 	fi
+	# --max-time 300 caps one request at 5min: a stalled APKMirror/Uptodown/GitHub response
+	# can otherwise hang an entire CI job until the runner is force-killed (~45min).
+	# --connect-timeout 10 = TCP connect budget, --retry 1 = one retry. Load-bearing, keep.
 	if ! curl -L -c "$TEMP_DIR/cookie.txt" -b "$TEMP_DIR/cookie.txt" --connect-timeout 10 --max-time 300 --retry 1 --fail -s -S "$@" "$ip" -o "$dlp"; then
 		epr "Request failed: $ip"
 		return 1
@@ -738,7 +746,7 @@ build_rv() {
 		break
 	done
 	if [ -z "$pkg_name" ]; then
-		epr "empty pkg name, not building ${table}."
+		build_fail "$table" "empty pkg name, not building ${table}."
 		return 0
 	fi
 	pr "Package name of '${table}' is '$pkg_name'"
@@ -748,7 +756,7 @@ build_rv() {
 	if [ "$version_mode" = auto ]; then
 		if ! version=$(get_patch_last_supported_ver "$list_patches" "$pkg_name" \
 			"${args[included_patches]}" "${args[excluded_patches]}" "${args[exclusive_patches]}"); then
-			epr "get_patch_last_supported_ver failed '$list_patches'"
+			build_fail "$table" "get_patch_last_supported_ver failed '$list_patches'"
 			return
 		elif [ -z "$version" ]; then get_latest_ver=true; fi
 	elif isoneof "$version_mode" latest beta; then
@@ -764,7 +772,7 @@ build_rv() {
 		version=$(get_highest_ver <<<"$pkgvers") || version=$(head -1 <<<"$pkgvers")
 	fi
 	if [ -z "$version" ]; then
-		epr "empty version, not building ${table}."
+		build_fail "$table" "empty version, not building ${table}."
 		return 0
 	fi
 
@@ -797,7 +805,7 @@ build_rv() {
 			break
 		done
 		if [ ! -f "$stock_apk" ]; then
-			epr "Stock apk not found ($stock_apk)"
+			build_fail "$table" "Stock apk not found ($stock_apk)"
 			return 0
 		fi
 	fi
@@ -808,14 +816,14 @@ build_rv() {
 		unzip -j "${stock_apk}.apkm" -d "${stock_apk}-zip" >/dev/null
 		for a in "${stock_apk}"-zip/*.apk; do
 			if ! sig_op=$(check_sig "$a" "$pkg_name" 2>&1); then
-				epr "Not building $table, apk signature mismatch '$a': $sig_op"
+				build_fail "$table" "Not building $table, apk signature mismatch '$a': $sig_op"
 				return 0
 			fi
 		done
 		rm -rf "${stock_apk}-zip" || :
 	else
 		if ! sig_op=$(check_sig "$stock_apk" "$pkg_name" 2>&1); then
-			epr "Not building $table, apk signature mismatch '$stock_apk': $sig_op"
+			build_fail "$table" "Not building $table, apk signature mismatch '$stock_apk': $sig_op"
 			return 0
 		fi
 	fi
@@ -867,7 +875,7 @@ build_rv() {
 		fi
 		if [ "${NORB:-}" != true ] || [ ! -f "$patched_apk" ]; then
 			if ! patch_apk "$stock_apk_to_patch" "$patched_apk" "${patcher_args[*]}" "${args[cli]}" "${args[ptjar]}"; then
-				epr "Building '${table}' failed!"
+				build_fail "$table" "Building '${table}' failed!"
 				return 0
 			fi
 		fi

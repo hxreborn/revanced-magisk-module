@@ -42,6 +42,11 @@ fi
 
 : >build.md
 ENABLE_MODULE_UPDATE=$(toml_get "$main_config_t" enable-module-update) || ENABLE_MODULE_UPDATE=true
+# 'enable-magisk-update' was renamed to 'enable-module-update'; the old key is silently
+# ignored, so warn instead of letting a stale config quietly fall back to the default.
+if toml_get "$main_config_t" enable-magisk-update >/dev/null 2>&1; then
+	wpr "config: 'enable-magisk-update' is deprecated and ignored; rename it to 'enable-module-update'."
+fi
 if [ "$ENABLE_MODULE_UPDATE" = true ] && [ -z "${GITHUB_REPOSITORY-}" ]; then
 	pr "You are building locally. Module updates will not be enabled."
 	ENABLE_MODULE_UPDATE=false
@@ -59,6 +64,7 @@ gh_dl "${MODULE_TEMPLATE_DIR}/bin/arm/cmpr" "https://github.com/j-hc/cmpr/releas
 gh_dl "${MODULE_TEMPLATE_DIR}/bin/x86/cmpr" "https://github.com/j-hc/cmpr/releases/latest/download/cmpr-x86"
 gh_dl "${MODULE_TEMPLATE_DIR}/bin/x64/cmpr" "https://github.com/j-hc/cmpr/releases/latest/download/cmpr-x86_64"
 
+: >"$TEMP_DIR/failed"
 idx=0
 for table_name in $(toml_get_table_names); do
 	if [ -z "$table_name" ]; then continue; fi
@@ -150,6 +156,8 @@ for table_name in $(toml_get_table_names); do
 	fi
 done
 wait
+FAILED=$(cat "$TEMP_DIR"/failed 2>/dev/null || :)
+[ -n "$FAILED" ] && epr "Apps that failed to build:\n$FAILED"
 rm -rf "$TEMP_DIR"/tmp.*
 if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
 
@@ -160,6 +168,11 @@ SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
 if [ -n "$SKIPPED" ]; then
 	log "\nSkipped:"
 	log "$SKIPPED"
+fi
+
+if [ -n "${FAILED:-}" ]; then
+	log "\nFailed:"
+	log "$FAILED"
 fi
 
 pr "Done"
