@@ -1,7 +1,7 @@
 patches-source = "MorpheApp/morphe-patches"
 cli-source = "MorpheApp/morphe-cli"
-patches-version = "latest"
-cli-version = "latest"
+patches-version = "v1.35.0"
+cli-version = "v1.11.0"
 rv-brand = "ReVanced Zygisk"
 remove-rv-integrations-checks = true
 enable-module-update = true
