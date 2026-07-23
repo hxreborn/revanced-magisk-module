@@ -11,6 +11,7 @@ jobs:
   run:
     permissions: write-all
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/setup-java@v5
         with:
