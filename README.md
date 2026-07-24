@@ -3,7 +3,7 @@
 [![CI](https://github.com/hxreborn/revanced-magisk-module/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/hxreborn/revanced-magisk-module/actions/workflows/ci.yml)
 [![Releases](https://img.shields.io/github/release-date/hxreborn/revanced-magisk-module?label=Latest%20Build)](https://github.com/hxreborn/revanced-magisk-module/releases/latest)
 
-Automated builds of patched YouTube using official [ReVanced patches](https://gitlab.com/ReVanced/revanced-patches), packaged as a Magisk/KernelSU module for `arm64-v8a`. Patched APK is mounted via Zygisk at app launch.
+Automated builds of patched YouTube using [anddea/revanced-patches](https://github.com/anddea/revanced-patches), packaged as a Magisk/KernelSU module for `arm64-v8a`. Patched APK is mounted via Zygisk at app launch.
 
 > [!NOTE]
 > Zygisk is required to scope the mount to YouTube's process namespace to avoid mount leak.
@@ -14,7 +14,8 @@ Automated builds of patched YouTube using official [ReVanced patches](https://gi
 
 ## Credits
 
-- [ReVanced](https://github.com/ReVanced): Patches and CLI
+- [anddea/revanced-patches](https://github.com/anddea/revanced-patches): Patches
+- [MorpheApp/morphe-cli](https://github.com/MorpheApp/morphe-cli): CLI
 - [j-hc/revanced-magisk-module](https://github.com/j-hc/revanced-magisk-module): Build pipeline template
 - [j-hc/rvmm-zygisk-mount](https://github.com/j-hc/rvmm-zygisk-mount): Zygisk companion mount implementation
 
