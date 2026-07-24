@@ -1,30 +1,7 @@
 #!/system/bin/sh
-MODDIR=${0%/*}
-. "$MODDIR/config"
-
-set_desc() {
-	sed -i "s|^description=.*|description=$1|" "$MODDIR/module.prop"
-}
-
-until [ "$(getprop sys.boot_completed)" = 1 ]; do sleep 1; done
-until [ -d "/sdcard/Android" ]; do sleep 1; done
-while
-	BASEPATH=$(pm path "$PKG_NAME" 2>&1 </dev/null)
-	SVCL=$?
-	[ $SVCL = 20 ]
-do sleep 2; done
-
-if [ $SVCL != 0 ]; then
-	set_desc "⚠️ Needs reflash: 'app not installed'"
-	exit 0
-fi
-
-VERSION=$(dumpsys package "$PKG_NAME" 2>&1 | grep -m1 versionName)
-VERSION=${VERSION#*=}
-if [ -n "$VERSION" ] && [ "$VERSION" != "$PKG_VER" ]; then
-	set_desc "⚠️ Needs reflash: 'version mismatch (installed:$VERSION, module:$PKG_VER)'"
-	exit 0
-fi
+MODDIR="$(dirname "$(readlink -f "$0")")"
+export MODDIR
+. "$MODDIR/utils.sh"
 
 build_procs_map() {
 	mkdir -p /data/adb/rvhc
@@ -55,17 +32,32 @@ build_procs_map() {
 	chmod 644 "$PM"
 }
 
-# clean stale bind mounts left by older versions
-grep -F "$PKG_NAME" /proc/self/mounts 2>/dev/null | while read -r line; do
-	mp=${line#* } mp=${mp%% *}
-	[ "${mp#/data/app/}" != "$mp" ] && umount -l "${mp%%\\*}" 2>/dev/null
-done
+until [ "$(getprop sys.boot_completed)" = 1 ]; do sleep 1; done
+until [ -d "/sdcard/Android" ]; do sleep 1; done
+while
+	BASEPATH=$(get_basepath)
+	SVCL=$?
+	[ $SVCL = 20 ]
+do sleep 2; done
+
+if [ $SVCL != 0 ]; then
+	ch_desc_err "App not installed: '$BASEPATH'"
+	exit 0
+fi
+
+VERSION=$(get_app_version)
+if [ "$VERSION" ] && [ "$VERSION" != "$PKG_VER" ]; then
+	ch_desc_err "Version mismatch (installed:$VERSION, module:$PKG_VER)"
+	exit 0
+fi
+
+# stale bind mounts left by pre-zygisk versions
+umount_all
 
 build_procs_map
-am force-stop "$PKG_NAME"
 
 if [ -s /data/adb/rvhc/procs_map ]; then
-	set_desc "YouTube ReVanced Zygisk v$PKG_VER"
+	ch_desc "YouTube ReVanced Zygisk v$PKG_VER"
 else
-	set_desc "⚠️ procs_map empty - install ZygiskNext or check logs"
+	ch_desc_err "procs_map empty - install ZygiskNext or check logs"
 fi
