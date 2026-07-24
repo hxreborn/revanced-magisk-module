@@ -50,7 +50,7 @@ abort() {
 	rm -rf ./${TEMP_DIR}/*tmp.* ./${TEMP_DIR}/*/*tmp.* ./${TEMP_DIR}/*-temporary-files
 	kill -n 9 0
 }
-java() { env -i java --enable-native-access=ALL-UNNAMED "$@"; }
+java() { env -i PATH="$PATH" HOME="$HOME" JAVA_HOME="${JAVA_HOME-}" TMPDIR="${TMPDIR-/tmp}" LANG="${LANG-C.UTF-8}" java --enable-native-access=ALL-UNNAMED "$@"; }
 # Record a per-app build failure. build_rv runs backgrounded and returns 0 even when a
 # build fails, so failures would otherwise only surface as scattered stderr lines. build.sh
 # summarizes this file at the end. Single-line appends are atomic under O_APPEND, so
