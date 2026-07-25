@@ -1,8 +1,8 @@
-YouTube: 20.51.39  
+YouTube: 21.04.223  
 
 > Requires Zygisk
   
-Patches: anddea/patches-4.2.0-dev.8.mpp  
-[Changelog](https://github.com/anddea/revanced-patches/releases/tag/v4.2.0-dev.8)
+Patches: MorpheApp/patches-1.36.0.mpp  
+[Changelog](https://github.com/MorpheApp/morphe-patches/releases/tag/v1.36.0)
 
 CLI: MorpheApp/morphe-desktop-1.12.0-all.jar    
