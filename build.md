@@ -1,8 +1,8 @@
-YouTube: 21.04.223  
+YouTube: 21.07.247  
 
 > Requires Zygisk
   
-Patches: MorpheApp/patches-1.39.1.mpp  
-[Changelog](https://github.com/MorpheApp/morphe-patches/releases/tag/v1.39.1)
+Patches: MorpheApp/patches-1.41.0.mpp  
+[Changelog](https://github.com/MorpheApp/morphe-patches/releases/tag/v1.41.0)
 
-CLI: MorpheApp/morphe-desktop-1.13.0-all.jar    
+CLI: MorpheApp/morphe-desktop-1.15.0-all.jar    
