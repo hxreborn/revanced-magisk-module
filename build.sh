@@ -55,6 +55,7 @@ fi
 if ((COMPRESSION_LEVEL > 9)) || ((COMPRESSION_LEVEL < 0)); then abort "compression-level must be within 0-9"; fi
 
 rm -rf module/bin/*/tmp.*
+rm -f "$TEMP_DIR/patches-notes.md"
 for file in "$TEMP_DIR"/*/changelog.md; do
 	[ -f "$file" ] && : >"$file"
 done
@@ -169,6 +170,10 @@ if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
 
 log "\n> Requires Zygisk\n"
 log "$(cat "$TEMP_DIR"/*/changelog.md)"
+if [ -s "$TEMP_DIR/patches-notes.md" ]; then
+	log ""
+	cat "$TEMP_DIR/patches-notes.md" >>build.md
+fi
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
 if [ -n "$SKIPPED" ]; then
