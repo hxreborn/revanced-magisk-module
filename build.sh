@@ -169,6 +169,10 @@ if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
 
 log "\n> Requires Zygisk\n"
 log "$(cat "$TEMP_DIR"/*/changelog.md)"
+if [ -s "${MODULE_TEMPLATE_DIR}/prefs.default" ]; then
+	log "\nDefault settings (applied once per change, root):"
+	log "$(sed 's/=false$/ = off/; s/=true$/ = on/; s/^/- /' "${MODULE_TEMPLATE_DIR}/prefs.default")"
+fi
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
 if [ -n "$SKIPPED" ]; then

@@ -54,6 +54,8 @@ fi
 # stale bind mounts left by pre-zygisk versions
 umount_all
 
+seed_prefs || :
+
 build_procs_map
 
 if [ -s /data/adb/rvhc/procs_map ]; then

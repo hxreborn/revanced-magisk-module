@@ -72,3 +72,33 @@ mount_rv_now() {
 	fi
 	mount_rv "$BASEPATH"
 }
+
+set_bool_prefs() {
+	local file=$1 defaults=$2 key value content
+	content=$(sed 's|<map />|<map>\n</map>|' "$file")
+	while IFS='=' read -r key value; do
+		case "$key" in '' | *[!A-Za-z0-9_]*) continue ;; esac
+		case "$value" in true | false) ;; *) continue ;; esac
+		content=$(printf '%s\n' "$content" | sed "/<boolean name=\"$key\" /d; s|</map>|<boolean name=\"$key\" value=\"$value\" />\n</map>|")
+	done <"$defaults"
+	printf '%s\n' "$content" >"$file"
+}
+
+seed_prefs() {
+	[ -s "$MODDIR/prefs.default" ] || return 0
+	local sum marker dir file uid
+	sum=$(cksum <"$MODDIR/prefs.default")
+	marker=/data/adb/rvhc/${MODDIR##*/}.prefs
+	[ "$(cat "$marker" 2>/dev/null)" = "$sum" ] && return 0
+	uid=$(stat -c %u "/data/data/$PKG_NAME") || return 1
+	dir=/data/data/$PKG_NAME/shared_prefs
+	file=$dir/morphe_prefs.xml
+	if [ ! -d "$dir" ]; then
+		mkdir -p "$dir" && chown "$uid:$uid" "$dir" && chmod 771 "$dir" && restorecon "$dir" || return 1
+	fi
+	if [ ! -f "$file" ]; then
+		printf "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n</map>\n" >"$file"
+		chown "$uid:$uid" "$file" && chmod 660 "$file" && restorecon "$file" || return 1
+	fi
+	set_bool_prefs "$file" "$MODDIR/prefs.default" && echo "$sum" >"$marker"
+}
