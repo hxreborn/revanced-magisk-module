@@ -752,6 +752,38 @@ check_sig() {
 	fi
 }
 
+join_lines() { awk 'NR>1{printf ", "}{printf "%s",$0}'; }
+
+patch_report() {
+	local list_patches=$1 app=$2 excluded=$3 included=$4 exclusive=$5 microg=$6 mode=$7
+	local state_file="patches-${app}.txt" prev_file="prev/patches-${app}.txt"
+	local all on exc inc applied off new removed
+	all=$(sed -n 's/^Name: //p' <<<"$list_patches" | sort -u)
+	on=$(awk '/^Name: /{n=substr($0,7)} /^Enabled: true/{print n}' <<<"$list_patches" | sort -u)
+	[ "$exclusive" = true ] && on=""
+	exc=$(grep -o "'[^']*'" <<<"$excluded" | tr -d "'" || :)
+	inc=$(grep -o "'[^']*'" <<<"$included" | tr -d "'" || :)
+	if [ "$mode" != apk ]; then exc+=$'\n'"$microg"; fi
+	applied=$(printf '%s\n%s\n' "$on" "$inc" | grep . | sort -u | grep -vFx -f <(printf '%s\n' "$exc") || :)
+	off=$(comm -23 <(echo "$all") <(echo "$applied"))
+	{ sed 's/^/+ /' <<<"$applied"; sed 's/^/- /' <<<"$off"; } | grep -v '^[+-] $' >"$state_file" || :
+	log "Patches: $(grep -c . <<<"$applied" || :) applied, $(grep -c . <<<"$off" || :) not applied"
+	if [ -n "$off" ]; then log "Not applied: $(join_lines <<<"$off")"; fi
+	[ -f "$prev_file" ] || return 0
+	local prev_all
+	prev_all=$(sed 's/^[+-] //' "$prev_file" | sort -u)
+	new=$(comm -13 <(echo "$prev_all") <(echo "$all"))
+	removed=$(comm -23 <(echo "$prev_all") <(echo "$all"))
+	if [ -n "$new" ]; then
+		local new_on new_off
+		new_on=$(comm -12 <(echo "$new") <(echo "$applied"))
+		new_off=$(comm -23 <(echo "$new") <(echo "$applied"))
+		if [ -n "$new_on" ]; then log "New, applied: $(join_lines <<<"$new_on")"; fi
+		if [ -n "$new_off" ]; then log "New, not applied: $(join_lines <<<"$new_off")"; fi
+	fi
+	if [ -n "$removed" ]; then log "Removed: $(join_lines <<<"$removed")"; fi
+}
+
 build_rv() {
 	eval "declare -A args=${1#*=}"
 	local version="" pkg_name=""
@@ -876,6 +908,8 @@ build_rv() {
 		wpr "You cant include/exclude microg patch as that's done by rvmm builder automatically."
 		p_patcher_args=("${p_patcher_args[@]//-[ei] ${microg_patch}/}")
 	fi
+
+	patch_report "$list_patches" "$app_name_l" "${args[excluded_patches]}" "${args[included_patches]}" "${args[exclusive_patches]}" "$microg_patch" "$mode_arg"
 
 	local patcher_args patched_apk build_mode
 	local rv_brand_f=${args[rv_brand],,}

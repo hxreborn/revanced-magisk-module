@@ -34,6 +34,13 @@ jobs:
             fi
           fi
 
+      - name: Fetch previous patch lists
+        run: |
+          mkdir -p prev
+          for f in $(git ls-tree --name-only origin/update | grep '^patches-.*\.txt$' || :); do
+            git show "origin/update:$f" > "prev/$f"
+          done
+
       - name: Get next version code
         id: next_ver_code
         env:
@@ -59,6 +66,8 @@ jobs:
           cat build.md >> "$GITHUB_OUTPUT"
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
           cp -f build.md build.tmp
+          mkdir -p patches.tmp
+          cp -f patches-*.txt patches.tmp/ 2>/dev/null || :
       
       - name: Upload release
         env:
@@ -78,6 +87,7 @@ jobs:
         run: |
           git checkout -f update || git switch --discard-changes --orphan update
           cp -f build.tmp build.md
+          cp -f patches.tmp/* . 2>/dev/null || :
           get_update_json() {
             echo "{
             \"version\": \"$1\",
@@ -107,7 +117,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       
-          git add build.md *-update.json
+          git add build.md *-update.json patches-*.txt
       
           if ! git diff --cached --quiet; then
             git commit -m "Bump version ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}"
