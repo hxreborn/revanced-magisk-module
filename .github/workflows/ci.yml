@@ -1,6 +1,10 @@
 name: CI
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        type: boolean
+        default: false
   schedule:
     - cron: "0 9 * * *"
 
@@ -25,7 +29,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! git checkout origin/update build.md; then
+          if [ "${{ inputs.force }}" = true ]; then
+            echo "SHOULD_BUILD=1" >> $GITHUB_OUTPUT
+          elif ! git checkout origin/update build.md; then
             echo "first time building!"
             echo "SHOULD_BUILD=1" >> $GITHUB_OUTPUT
           else
