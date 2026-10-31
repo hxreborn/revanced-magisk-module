@@ -2,6 +2,7 @@
 + Add to queue
 + Ambient mode
 + App refresh rate
++ Ask flyout menu
 + Bypass image region restrictions
 + Bypass link redirects
 + Captions
@@ -14,6 +15,7 @@
 + Copy text
 + Copy video link
 + Custom branding
++ Custom font
 + Custom player overlay opacity
 + DeArrow
 + Disable DRC audio
@@ -32,12 +34,16 @@
 + Disable sign in to TV popup
 + Disable video codecs
 + Double tap to seek
++ Download post images
 + Downloads
 + Enable debugging
 + Exit fullscreen mode
++ Feed card layout
++ Feed video actions
++ Feed view count
++ Force animations
 + Force fullscreen landscape
 + Force original audio
-+ Force system font
 + Fullscreen video scale
 + Hide Shorts components
 + Hide ads
@@ -58,6 +64,7 @@
 + Miniplayer
 + Mute button
 + Navigation bar
++ Niconico comments
 + Open Shorts in regular player
 + Open channel of live avatar
 + Open links externally
@@ -79,10 +86,13 @@
 + Return YouTube Dislike
 + Sanitize sharing links
 + Save to Watch later
++ Search comments
 + Seekbar
++ Series tracking
 + Settings menu filter
 + Shorts autoplay
 + Shorts icon style
++ Skip live Shorts
 + Skip silence
 + SponsorBlock
 + Spoof app version
@@ -90,6 +100,8 @@
 + Spoof video streams
 + Swipe controls
 + Theme
++ Translate posts
++ Video delay
 + Video quality
 + Voice over translation
 + Wide search bar
