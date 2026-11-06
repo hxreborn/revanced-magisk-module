@@ -8,6 +8,7 @@
 + Captions
 + Change form factor
 + Change header
++ Change picture-in-picture actions
 + Change start page
 + Channel search
 + Channel whitelist
@@ -94,16 +95,19 @@
 + Shorts icon style
 + Skip live Shorts
 + Skip silence
++ Snackbar
 + SponsorBlock
 + Spoof app version
 + Spoof device dimensions
 + Spoof video streams
 + Swipe controls
 + Theme
++ Translate live chat
 + Translate posts
 + Video delay
 + Video quality
 + Voice over translation
++ Watch later improvements
 + Wide search bar
 - Change installer source
 - Clone app
