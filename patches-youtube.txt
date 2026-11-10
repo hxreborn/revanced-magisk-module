@@ -66,6 +66,7 @@
 + Mute button
 + Navigation bar
 + Niconico comments
++ On-the-go player
 + Open Shorts in regular player
 + Open channel of live avatar
 + Open links externally
@@ -78,6 +79,7 @@
 + Playback in feeds
 + Playback speed
 + Player icon style
++ Playlist improvements
 + PoToken provider
 + Reload video
 + Remember live stream playback position
@@ -107,7 +109,6 @@
 + Video delay
 + Video quality
 + Voice over translation
-+ Watch later improvements
 + Wide search bar
 - Change installer source
 - Clone app
