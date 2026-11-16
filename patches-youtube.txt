@@ -3,6 +3,7 @@
 + Ambient mode
 + App refresh rate
 + Ask flyout menu
++ Autoplay control
 + Bypass image region restrictions
 + Bypass link redirects
 + Captions
@@ -45,6 +46,7 @@
 + Force animations
 + Force fullscreen landscape
 + Force original audio
++ Fullscreen playlist panel
 + Fullscreen video scale
 + Hide Shorts components
 + Hide ads
@@ -60,6 +62,7 @@
 + Hide status bar
 + Hide timestamp
 + Hide video action buttons
++ Loop count
 + Loop video
 + Media notification controls
 + Miniplayer
@@ -79,6 +82,7 @@
 + Playback in feeds
 + Playback speed
 + Player icon style
++ Playlist button
 + Playlist improvements
 + PoToken provider
 + Reload video
